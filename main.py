@@ -1,11 +1,11 @@
 import asyncio
-import httpx
 import json
-from capsolver import CapSolver
+import httpx
 from colorama import Fore, init
+from captcha import ServiceAnticaptcha 
 
 
-API_KEY = "your_captcha_api_key"
+API_KEY = "6b53e789e96a5d330a5473a077c2df33"
 ACCOUNTS = "data/accounts.txt"
 PROXIES = "data/proxies.txt"
 LOGIN_URL = "https://api.nodepay.org/api/auth/login?"
@@ -24,7 +24,7 @@ HEADERS = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
 }
 
-# Инициализация colorama
+
 init(autoreset=True)
 
 
@@ -92,6 +92,29 @@ async def save_airdrop_stat(account_email, airdrop_data):
         raise Exception(f"Ошибка при сохранении статистики аирдропа для {account_email}: {e}")
 
 
+async def process_account(account, solver):
+    print(Fore.CYAN + f"\nОбрабатываем аккаунт: {account['email']}")
+    
+    try:
+        print(Fore.GREEN + "Решение каптчи...")
+        recaptcha_token = await solver.solve_captcha()
+        print(Fore.GREEN + f"Каптча для {account['email']} решена!")
+
+        print(Fore.GREEN + "Авторизация...")
+        np_token = await login(LOGIN_URL, account, recaptcha_token)
+        print(Fore.GREEN + f"Авторизация для {account['email']} выполнена успешно!")
+
+        print(Fore.GREEN + "Получение статистики по аирдропу...")
+        airdrop_data = await get_airdrop_stat(AIRDROP_URL, np_token)
+        print(Fore.GREEN + f"Airdrop статистика для {account['email']} получена!")
+
+        await save_airdrop_stat(account["email"], airdrop_data)
+        print(Fore.GREEN + f"Статистика по аирдропу для {account['email']} сохранена в файл.")
+
+    except Exception as e:
+        print(Fore.RED + f"Ошибка для {account['email']}: {e}")
+
+
 async def main():
     try:
         accounts = load_accounts()
@@ -99,29 +122,13 @@ async def main():
             raise ValueError("Не загружено ни одного аккаунта.")
 
         print(Fore.GREEN + f"Загружено {len(accounts)} аккаунтов.")
-        captcha_solver = CapSolver(API_KEY)
+        solver = ServiceAnticaptcha(API_KEY)  # Используем новый решатель каптчи
 
+        tasks = []
         for account in accounts:
-            try:
-                print(Fore.CYAN + f"\nОбрабатываем аккаунт: {account['email']}")
+            tasks.append(process_account(account, solver))
 
-                print(Fore.GREEN + "Решение каптчи...")
-                recaptcha_token = await captcha_solver.solve_captcha()
-                print(Fore.GREEN + f"Каптча для {account['email']} решена!")
-
-                print(Fore.GREEN + "Авторизация...")
-                np_token = await login(LOGIN_URL, account, recaptcha_token)
-                print(Fore.GREEN + f"Авторизация для {account['email']} выполнена успешно!")
-
-                print(Fore.GREEN + "Получение статистики по аирдропу...")
-                airdrop_data = await get_airdrop_stat(AIRDROP_URL, np_token)
-                print(Fore.GREEN + f"Airdrop статистика для {account['email']} получена!")
-
-                await save_airdrop_stat(account["email"], airdrop_data)
-                print(Fore.GREEN + f"Статистика по аирдропу для {account['email']} сохранена в файл.")
-
-            except Exception as e:
-                print(Fore.RED + f"Ошибка для {account['email']}: {e}")
+        await asyncio.gather(*tasks)
 
     except Exception as e:
         print(Fore.RED + f"Ошибка при обработке аккаунтов: {e}")
