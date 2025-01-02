@@ -12,27 +12,26 @@ class BaseClient:
 
 
     async def create_session(self, proxy=None, user_agent=None):
-        self.proxy = proxy
-        self.headers = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/json',
-            'origin': 'chrome-extension://lgmpfmgeabnnlemejacfljbmonaomfmm',
-            'priority': 'u=1, i',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'none',
-            'user-agent': user_agent,
-        }
-        if self.session:
-            await self.session.close()
+        if self.session is None:
+            self.proxy = proxy
+            self.headers = {
+                'accept': '*/*',
+                'accept-language': 'en-US,en;q=0.9',
+                'content-type': 'application/json',
+                'origin': 'chrome-extension://lgmpfmgeabnnlemejacfljbmonaomfmm',
+                'priority': 'u=1, i',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'none',
+                'user-agent': user_agent,
+            }
 
-        self.session = AsyncSession(
-            impersonate='chrome110',
-            headers=self.headers,
-            # proxies={'http': proxy, 'https': proxy} if proxy else None,
-            verify=False
-        )
+            self.session = AsyncSession(
+                impersonate='chrome110',
+                headers=self.headers,
+                proxies={'http': proxy, 'https': proxy} if proxy else None,
+                verify=False
+            )
 
 
     async def close_session(self):

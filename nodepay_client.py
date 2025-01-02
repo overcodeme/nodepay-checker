@@ -1,10 +1,15 @@
 import uuid
+import os
+import json
 from base_client import BaseClient
 from captcha import ServiceAnticaptcha, API_KEY
 from exceptions import LoginError, GetAirdropStatsError, CloudflareException
 
+TOKEN_FILE = 'data/tokens.json'
 
 class NodepayClient(BaseClient):
+
+
     def __init__(self, email='', password='', proxy='', user_agent=''):
         super().__init__()
         self.email = email
@@ -26,6 +31,33 @@ class NodepayClient(BaseClient):
             'sec-fetch-site': 'none',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
+
+
+    @staticmethod
+    def load_tokens():
+        if os.path.exists(TOKEN_FILE):
+            with open(TOKEN_FILE, 'r') as file:
+                return json.load(file)
+        return {}
+    
+
+    @staticmethod
+    def save_tokens(tokens):
+        with open(TOKEN_FILE, 'w') as file:
+            json.dump(tokens, file)
+
+
+    @staticmethod
+    def get_token(email):
+        tokens = NodepayClient.load_tokens()
+        return tokens.get(email)
+    
+
+    @staticmethod
+    def save_token(email, token):
+        tokens = NodepayClient.load_tokens()
+        tokens[email] = token
+        NodepayClient.save_tokens(tokens)
 
 
     async def login(self):
@@ -51,7 +83,9 @@ class NodepayClient(BaseClient):
             raise LoginError(msg)
         
         print(f'Успешная авторизация: {self.email}')
-        return response['data']['token']
+        token = response['data']['token']
+        NodepayClient.save_token(self.email, token)
+        return token
     
 
     async def info(self, access_token):
@@ -77,13 +111,18 @@ class NodepayClient(BaseClient):
 
 
     async def get_airdrop_stats(self, access_token):
+        token = NodepayClient.get_token(self.email)
+
+        if not token:
+            token = await self.login()
+
         headers = self._auth_headers()
         headers['authorization'] = f'Bearer {access_token}'
 
         response = await self.make_request(
             method='GET',
             url='https://api.nodepay.org/api/season/airdrop-status?',
-            headers=headers
+            headers=headers,
         )
 
         if not response.get('success', False):

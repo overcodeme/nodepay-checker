@@ -1,6 +1,5 @@
 import asyncio
 from anticaptchaofficial.turnstileproxyless import turnstileProxyless
-from colorama import Fore
 
 
 WEBSITE_URL = "https://app.nodepay.ai/login"

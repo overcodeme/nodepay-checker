@@ -1,6 +1,5 @@
 import asyncio
 from nodepay_client import NodepayClient
-from colorama import Fore
 import platform
 
 
@@ -20,7 +19,7 @@ async def process_account(account, proxy):
     async with NodepayClient(email=email, password=password, proxy=proxy, user_agent=user_agent) as client:
         try:
             access_token = await client.login()
-            data = await client.info(access_token)
+            data = await client.get_airdrop_stats(access_token)
             print(f'| — Account: {email} | Кол-во поинтов: {data}')
         except Exception as e:
             print(f'| — Account: {email} | Ошибка при обработке аккаунта: {e}')
