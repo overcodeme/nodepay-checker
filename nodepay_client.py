@@ -1,11 +1,8 @@
 import uuid
-import os
-import json
 from base_client import BaseClient
 from captcha import ServiceAnticaptcha, API_KEY
-from exceptions import LoginError, GetAirdropStatsError, CloudflareException
+from exceptions import LoginError, GetAirdropStatsError
 
-TOKEN_FILE = 'data/tokens.json'
 
 class NodepayClient(BaseClient):
 
@@ -20,43 +17,17 @@ class NodepayClient(BaseClient):
 
     def _auth_headers(self):
         return {
-            'accept': '*/*',
+            'accept': 'application/json, text/javascript, */*; q=0.01',
             'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/json',
-            'origin': 'chrome-extension://lgmpfmgeabnnlemejacfljbmonaomfmm',
-            'priority': 'u=1, i',
+            'referer': 'https://api.nodepay.org/',
+            'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="112", "Google Chrome";v="112"',
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'none',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': self.user_agent,
         }
 
-
-    @staticmethod
-    def load_tokens():
-        if os.path.exists(TOKEN_FILE):
-            with open(TOKEN_FILE, 'r') as file:
-                return json.load(file)
-        return {}
-    
-
-    @staticmethod
-    def save_tokens(tokens):
-        with open(TOKEN_FILE, 'w') as file:
-            json.dump(tokens, file)
-
-
-    @staticmethod
-    def get_token(email):
-        tokens = NodepayClient.load_tokens()
-        return tokens.get(email)
-    
-
-    @staticmethod
-    def save_token(email, token):
-        tokens = NodepayClient.load_tokens()
-        tokens[email] = token
-        NodepayClient.save_tokens(tokens)
 
 
     async def login(self):
@@ -66,7 +37,6 @@ class NodepayClient(BaseClient):
         json_data = {
             'user': self.email,
             'password': self.password,
-            'remember_me': True,
             'recaptcha_token': captcha_token
         }
 
@@ -81,9 +51,8 @@ class NodepayClient(BaseClient):
             msg = response.get('msg', 'Unknown login error')
             raise LoginError(msg)
         
-        print(f'| — Account: {self.email} | Successfully logged in')
+        print(f'| — Account: {self.email} | Successfully logged in | {response['data']['token']}')
         token = response['data']['token']
-        NodepayClient.save_token(self.email, token)
         return token
     
 
@@ -95,18 +64,7 @@ class NodepayClient(BaseClient):
             url='https://api.nodepay.org/api/earn/info?',
             headers=headers
         )
-
         return response, headers
-
-
-    async def validate_token(self, token):
-        try:
-            await self.info(token)
-            return True
-        except CloudflareException as e:
-            raise CloudflareException(e)
-        except Exception:
-            return False
 
 
     async def get_airdrop_stats(self):
@@ -115,16 +73,11 @@ class NodepayClient(BaseClient):
 
         headers = self._auth_headers()
         headers['authorization'] = f'Bearer {token}'
-        captcha_token = await ServiceAnticaptcha(API_KEY).solve_captcha(self.email)
-        json_data = {
-            'recaptcha_token': captcha_token
-        }
 
         response = await self.make_request(
             method='GET',
             url='https://api.nodepay.org/api/season/airdrop-status?',
-            headers=headers,
-            json_data=json_data
+            headers=headers
         )
 
         if not response.get('success', False):
