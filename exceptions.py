@@ -1,5 +1,8 @@
-class CloudflareException:
+class CloudflareException(Exception):
     pass
 
-class LoginError:
+class LoginError(Exception):
+    pass
+
+class GetAirdropStatsError(Exception):
     pass

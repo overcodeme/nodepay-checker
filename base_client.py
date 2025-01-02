@@ -30,7 +30,7 @@ class BaseClient:
         self.session = AsyncSession(
             impersonate='chrome110',
             headers=self.headers,
-            proxies={'http': proxy, 'https': proxy} if proxy else None,
+            # proxies={'http': proxy, 'https': proxy} if proxy else None,
             verify=False
         )
 
@@ -41,7 +41,7 @@ class BaseClient:
             self.session = None
 
 
-    async def make_request(self, method: str, url: str, headers: dict = None, json_data: dict = None):
+    async def make_request(self, method, url, headers: dict = None, json_data: dict = None):
         if not self.session:
             await self.create_session(self.proxy, self.user_agent)
 
@@ -51,8 +51,11 @@ class BaseClient:
                 url=url,
                 headers=headers or self.headers,
                 json=json_data,
-                timeout=30
+                proxy=self.proxy,
+                timeout=30,
+                impersonate="chrome110"
             )
+
             if response.status_code in [400, 403]:
                 raise CloudflareException('Cloudflare protection detected')
 
@@ -77,6 +80,5 @@ class BaseClient:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close_session()
-
 
             

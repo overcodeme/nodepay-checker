@@ -19,17 +19,17 @@ async def process_account(account, proxy):
 
     async with NodepayClient(email=email, password=password, proxy=proxy, user_agent=user_agent) as client:
         try:
-            user_id, access_token = await client.login()
-            print(f'{Fore.GREEN}Успешный вход: {email} | User ID: {user_id}')
+            access_token = await client.login()
+            data = await client.info(access_token)
+            print(f'| — Account: {email} | Кол-во поинтов: {data}')
         except Exception as e:
-            print(f'{Fore.RED}Ошибка при обработке аккаунта {email}: {e}')
+            print(f'| — Account: {email} | Ошибка при обработке аккаунта: {e}')
 
 
 async def main():
     accounts = load_data('data/accounts.txt')
     proxies = load_data('data/proxies.txt')
-
-    print(f'{Fore.YELLOW}Загружено аккаунтов: {len(accounts)}')
+    print(f'Загружено аккаунтов: {len(accounts)}')
 
     tasks = []
     for account, proxy in zip(accounts, proxies):
