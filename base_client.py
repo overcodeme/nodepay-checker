@@ -26,6 +26,9 @@ class BaseClient:
                 'user-agent': user_agent,
             }
 
+            if self.session:
+                await self.session.close()
+
             self.session = AsyncSession(
                 impersonate='chrome110',
                 headers=self.headers,

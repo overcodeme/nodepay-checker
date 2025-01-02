@@ -1,6 +1,7 @@
 import asyncio
 from nodepay_client import NodepayClient
 import platform
+from fake_useragent import UserAgent
 
 
 if platform.system() == "Windows":
@@ -14,21 +15,21 @@ def load_data(file_path):
 
 async def process_account(account, proxy):
     email, password = account.split(':')
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+    ua = UserAgent()
+    user_agent = ua.random
 
     async with NodepayClient(email=email, password=password, proxy=proxy, user_agent=user_agent) as client:
         try:
-            access_token = await client.login()
-            data = await client.get_airdrop_stats(access_token)
-            print(f'| — Account: {email} | Кол-во поинтов: {data}')
+            data = await client.get_airdrop_stats()
+            print(f'| — Account: {email} | Account stats: {data}')
         except Exception as e:
-            print(f'| — Account: {email} | Ошибка при обработке аккаунта: {e}')
+            print(f'| — Account: {email} | Error while processing account: {e}')
 
 
 async def main():
     accounts = load_data('data/accounts.txt')
     proxies = load_data('data/proxies.txt')
-    print(f'Загружено аккаунтов: {len(accounts)}')
+    print(f'Uploaded accounts: {len(accounts)}')
 
     tasks = []
     for account, proxy in zip(accounts, proxies):

@@ -9,7 +9,6 @@ TOKEN_FILE = 'data/tokens.json'
 
 class NodepayClient(BaseClient):
 
-
     def __init__(self, email='', password='', proxy='', user_agent=''):
         super().__init__()
         self.email = email
@@ -82,7 +81,7 @@ class NodepayClient(BaseClient):
             msg = response.get('msg', 'Unknown login error')
             raise LoginError(msg)
         
-        print(f'Успешная авторизация: {self.email}')
+        print(f'| — Account: {self.email} | Successfully logged in')
         token = response['data']['token']
         NodepayClient.save_token(self.email, token)
         return token
@@ -110,24 +109,27 @@ class NodepayClient(BaseClient):
             return False
 
 
-    async def get_airdrop_stats(self, access_token):
-        token = NodepayClient.get_token(self.email)
-
-        if not token:
-            token = await self.login()
+    async def get_airdrop_stats(self):
+        print(f'| — Account: {self.email} | Getting airdrop stats...')
+        token = await self.login()
 
         headers = self._auth_headers()
-        headers['authorization'] = f'Bearer {access_token}'
+        headers['authorization'] = f'Bearer {token}'
+        captcha_token = await ServiceAnticaptcha(API_KEY).solve_captcha(self.email)
+        json_data = {
+            'recaptcha_token': captcha_token
+        }
 
         response = await self.make_request(
             method='GET',
             url='https://api.nodepay.org/api/season/airdrop-status?',
             headers=headers,
+            json_data=json_data
         )
 
         if not response.get('success', False):
             msg = response.get('msg', 'Unknown getting airdrop stats error')
             raise GetAirdropStatsError(msg)
-        print(f'| — Account: {self.email} | Статистика успешно получена')
+        print(f'| — Account: {self.email} | Successfully got account stats')
         return response['data']
         
