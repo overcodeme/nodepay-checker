@@ -21,9 +21,9 @@ async def process_account(account, proxy):
     async with NodepayClient(email=email, password=password, proxy=proxy, user_agent=user_agent) as client:
         try:
             data = await client.get_airdrop_stats()
-            print(f'| — Account: {email} | Account stats: {data}')
+            print(f'| — {email} | Account stats: {data}')
         except Exception as e:
-            print(f'| — Account: {email} | Error while processing account: {e}')
+            print(f'| — {email} | Error while processing account: {e}')
 
 
 async def main():

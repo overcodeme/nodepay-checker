@@ -24,7 +24,7 @@ class ServiceAnticaptcha:
         if captcha_token != 0:
             return captcha_token
         else:
-            raise Exception(f"| — Account: {self.email} | Eror while solving captcha: " + self.solver.error_code)
+            raise Exception(f"| — {self.email} | Error while solving captcha: " + self.solver.error_code)
 
 
     async def get_captcha_token_async(self):
@@ -33,12 +33,12 @@ class ServiceAnticaptcha:
 
     async def solve_captcha(self, email):
         try:
-            print(f"| — Account: {email} | Solving captcha...")
+            print(f"| — {email} | Solving captcha...")
             recaptcha_token = await self.get_captcha_token_async()
 
-            print(f"| — Account: {email} | Captcha solved!")
+            print(f"| — {email} | Captcha solved!")
             return recaptcha_token
         except Exception as e:
-            print(f"| — Account: {email} | Error while solving captcha: {e}")
+            print(f"| — {email} | Error while solving captcha: {e}")
             return None
 

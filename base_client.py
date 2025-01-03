@@ -29,8 +29,6 @@ class BaseClient:
                 'user-agent': user_agent,
             }
 
-            if self.session:
-                await self.session.close()
 
             self.session = AsyncSession(
                 impersonate='chrome110',
@@ -81,7 +79,7 @@ class BaseClient:
             except Exception as e:
                 retry_count += 1
                 if retry_count >= max_retries:
-                    raise Exception(f'Max retries reaches. Last error: {e}')
+                    raise Exception(f'Max retries reached. Last error: {e}')
                 await asyncio.sleep(random.uniform(1.5, 4))
 
 
