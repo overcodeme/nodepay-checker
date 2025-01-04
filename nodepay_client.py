@@ -6,14 +6,16 @@ from logger import logger
 ELIGIBLE_ACCS_PATH = 'results/eligible_accs.txt'
 NOT_ELIGIBLE_ACCS_PATH = 'results/not_eligible_accs.txt'
 
+
 class NodepayClient(BaseClient):
 
-    def __init__(self, email='', password='', proxy='', user_agent=''):
+    def __init__(self, email='', password='', proxy='', user_agent='', account_logger=''):
         super().__init__()
         self.email = email
         self.password = password
         self.proxy = proxy
         self.user_agent = user_agent
+        self.logger = account_logger
 
 
     def save_to_file(self, file_path, data):
@@ -21,7 +23,7 @@ class NodepayClient(BaseClient):
             with open(file_path, 'a') as file:
                 file.write(data + '\n')
         except Exception as e:
-            logger.log('ERROR', account=self.email, message=f'Error while writting data in the file: {e}')
+            self.logger.error('ERROR', f'Error while writting data in the file: {e}')
 
 
     def _auth_headers(self):
@@ -39,7 +41,7 @@ class NodepayClient(BaseClient):
 
 
     async def login(self):
-        captcha_token = await ServiceAnticaptcha(API_KEY).solve_captcha(self.email)
+        captcha_token = await ServiceAnticaptcha(API_KEY, account_logger=logger.bind(account=self.email)).solve_captcha()
         headers = self._auth_headers()
 
         json_data = {
@@ -53,14 +55,15 @@ class NodepayClient(BaseClient):
             url='https://api.nodepay.org/api/auth/login',
             headers=headers,
             json_data=json_data,
-            email=self.email
+            email=self.email,
+            account_logger=self.logger
         )
 
         if not response.get('success', False):
             msg = response.get('msg', 'Unknown login error')
-            logger.bind(account=self.email).error(msg)
+            self.logger.error(msg)
         
-        logger.bind(account=self.email).success('Successfully logged in')
+        self.logger.success('Successfully logged in')
         token = response['data']['token']
         return token
 
@@ -80,12 +83,12 @@ class NodepayClient(BaseClient):
 
         if not response.get('success', False):
             msg = response.get('msg', 'Unknown getting airdrop stats error')
-            logger.bind(account=self.email).error(msg)
+            self.logger.error(msg)
 
         if response['data']['is_eligible'] == False:
-            logger.bind(account=self.email).info('Account not eligible')
+            self.logger.info('Account not eligible')
         else:
-            logger.bind(account=self.email).info('Account is eligible')
+            self.logger.info('Account is eligible')
 
         data = f'{self.email}:{self.password}'
 

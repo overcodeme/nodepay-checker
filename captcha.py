@@ -10,7 +10,7 @@ API_KEY = '6b53e789e96a5d330a5473a077c2df33'
 
 class ServiceAnticaptcha:
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, account_logger):
         self.api_key = api_key
         self.solver = turnstileProxyless()
         self.solver.set_verbose(1)
@@ -18,6 +18,7 @@ class ServiceAnticaptcha:
         self.solver.set_website_url(WEBSITE_URL)
         self.solver.set_website_key(WEBSITE_KEY)
         self.solver.set_action('login') 
+        self.logger = account_logger
 
 
     def get_captcha_token(self):
@@ -29,14 +30,13 @@ class ServiceAnticaptcha:
         return await asyncio.to_thread(self.get_captcha_token)
 
 
-    async def solve_captcha(self, email):
+    async def solve_captcha(self):
         try:
-            logger.bind(account=email).error('Solving captcha...')
+            self.logger.info('Solving captcha...')
             recaptcha_token = await self.get_captcha_token_async()
-
-            logger.bind(account=email).success('Captcha solved!')
+            self.logger.success('Captcha solved!')
             return recaptcha_token
         except Exception as e:
-            logger.bind(account=email).error(f'Error while solving captcha: {e}')
+            self.logger.error(f'Error while solving captcha: {e}')
             return None
 

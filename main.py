@@ -19,11 +19,12 @@ async def process_account(account, proxy):
     ua = UserAgent()
     user_agent = ua.random
 
-    async with NodepayClient(email=email, password=password, proxy=proxy, user_agent=user_agent) as client:
+    async with NodepayClient(email=email, password=password, proxy=proxy, user_agent=user_agent, account_logger=logger.bind(account=email)) as client:
+        account_logger=logger.bind(account=email)
         try:
             await client.get_airdrop_stats()
         except Exception as e:
-            logger.bind(account=client.email).error(f'Error while processing account: {e}', )
+            account_logger.error(f'Error while processing account: {e}', )
 
 
 async def main():
