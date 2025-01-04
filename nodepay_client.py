@@ -1,6 +1,7 @@
 from base_client import BaseClient
 from captcha import ServiceAnticaptcha, API_KEY
-from exceptions import LoginError, GetAirdropStatsError
+from logger import logger
+
 
 ELIGIBLE_ACCS_PATH = 'results/eligible_accs.txt'
 NOT_ELIGIBLE_ACCS_PATH = 'results/not_eligible_accs.txt'
@@ -20,7 +21,7 @@ class NodepayClient(BaseClient):
             with open(file_path, 'a') as file:
                 file.write(data + '\n')
         except Exception as e:
-            print(f' — {self.email} | Error whilw writting data in the file')
+            logger.log('ERROR', account=self.email, message=f'Error while writting data in the file: {e}')
 
 
     def _auth_headers(self):
@@ -51,20 +52,20 @@ class NodepayClient(BaseClient):
             method='POST',
             url='https://api.nodepay.org/api/auth/login',
             headers=headers,
-            json_data=json_data
+            json_data=json_data,
+            email=self.email
         )
 
         if not response.get('success', False):
             msg = response.get('msg', 'Unknown login error')
-            raise LoginError(msg)
+            logger.bind(account=self.email).error(msg)
         
-        print(f'| — {self.email} | Successfully logged in | {response['data']['token']}')
+        logger.bind(account=self.email).success('Successfully logged in')
         token = response['data']['token']
         return token
 
 
     async def get_airdrop_stats(self):
-        print(f'| — {self.email} | Getting airdrop stats...')
         token = await self.login()
 
         headers = self._auth_headers()
@@ -73,13 +74,18 @@ class NodepayClient(BaseClient):
         response = await self.make_request(
             method='GET',
             url='https://api.nodepay.org/api/season/airdrop-status?',
-            headers=headers
+            headers=headers,
+            email=self.email
         )
 
         if not response.get('success', False):
             msg = response.get('msg', 'Unknown getting airdrop stats error')
-            raise GetAirdropStatsError(msg)
-        print(f'| — {self.email} | {'Account not eligible' if response['data']['is_eligible'] == False else 'Account is eligible'}')
+            logger.bind(account=self.email).error(msg)
+
+        if response['data']['is_eligible'] == False:
+            logger.bind(account=self.email).info('Account not eligible')
+        else:
+            logger.bind(account=self.email).info('Account is eligible')
 
         data = f'{self.email}:{self.password}'
 
@@ -88,6 +94,5 @@ class NodepayClient(BaseClient):
         else:
             self.save_to_file(ELIGIBLE_ACCS_PATH, data)
             
-
         return response['data']
         

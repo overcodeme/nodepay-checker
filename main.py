@@ -2,6 +2,7 @@ import asyncio
 from nodepay_client import NodepayClient
 import platform
 from fake_useragent import UserAgent
+from logger import logger
 
 
 if platform.system() == "Windows":
@@ -20,10 +21,9 @@ async def process_account(account, proxy):
 
     async with NodepayClient(email=email, password=password, proxy=proxy, user_agent=user_agent) as client:
         try:
-            data = await client.get_airdrop_stats()
-            print(f'| — {email} | Account stats: {data}')
+            await client.get_airdrop_stats()
         except Exception as e:
-            print(f'| — {email} | Error while processing account: {e}')
+            logger.bind(account=client.email).error(f'Error while processing account: {e}', )
 
 
 async def main():

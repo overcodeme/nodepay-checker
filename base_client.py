@@ -3,6 +3,7 @@ import asyncio
 import random
 from curl_cffi.requests import AsyncSession
 from exceptions import CloudflareException
+from logger import logger
 
 
 class BaseClient:
@@ -44,7 +45,7 @@ class BaseClient:
             self.session = None
 
 
-    async def make_request(self, method, url, headers: dict = None, json_data: dict = None, max_retries = 3):
+    async def make_request(self, method, url, email, headers: dict = None, json_data: dict = None, max_retries = 3):
         if not self.session:
             await self.create_session(self.proxy, self.user_agent)
 
@@ -62,24 +63,24 @@ class BaseClient:
                 )
 
                 if response.status_code in [400, 403]:
-                    raise CloudflareException('Cloudflare protection detected')
+                    logger.bind(account=email).error('Cloudflare protection detected')
 
                 try:
                     response_json = response.json()
                 except json.JSONDecodeError:
-                    raise Exception('Failed to parse JSON response')
+                    logger.bind(account=email).error('Failed to parse JSON response')
 
                 if not response.ok:
                     error_msg = response_json.get('error', 'Unknown error')
-                    raise Exception(f'Request failed with status {response.status_code}: {error_msg}')
+                    logger.bind(account=email).error(f'Request failed with status {response.status_code}: {error_msg}')
                 
                 return response_json
             except CloudflareException as e:
-                raise(e)
+                logger.bind(account=email).error(e)
             except Exception as e:
                 retry_count += 1
                 if retry_count >= max_retries:
-                    raise Exception(f'Max retries reached. Last error: {e}')
+                    logger.bind(account=email).error(f'Max retries reached. Last error: {e}')
                 await asyncio.sleep(random.uniform(1.5, 4))
 
 
