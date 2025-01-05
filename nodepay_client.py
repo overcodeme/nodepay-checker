@@ -1,4 +1,3 @@
-import aiofiles
 import json
 import os
 import warnings
@@ -39,6 +38,11 @@ class NodepayClient(BaseClient):
             'sec-fetch-site': 'same-origin',
             'user-agent': self.user_agent,
         }
+    
+
+    def save_to_file(self, file_path, data):
+        with open(file_path, 'a') as file:
+            file.write(data + '\n')
 
 
     @classmethod
@@ -62,7 +66,7 @@ class NodepayClient(BaseClient):
     @classmethod
     def get_token(cls, email):
         tokens = cls.load_tokens()
-        return tokens[email]
+        return tokens.get(email) 
 
 
     @classmethod
@@ -73,14 +77,16 @@ class NodepayClient(BaseClient):
 
 
     def _update_headers(self, token):
-        headers = self._auth_headers
-        return headers.update({'authorization': f'Bearer {token}'}) or headers
+        headers = self._auth_headers()
+        headers['authorization'] = f'Bearer {token}'
+        return headers
 
 
     async def info(self, token):
         response = await self.make_request(
             method='GET',
             url='https://api.nodepay.org/api/earn/info?',
+            email=self.email,
             headers=self._update_headers(token)
         )
         return response["data"]
@@ -122,9 +128,9 @@ class NodepayClient(BaseClient):
         response = await self.make_request(
             method='POST',
             url='https://api.nodepay.org/api/auth/login',
+            email=self.email,
             headers=headers,
             json_data=json_data,
-            email=self.email,
             account_logger=self.logger
         )
 
@@ -144,8 +150,8 @@ class NodepayClient(BaseClient):
         response = await self.make_request(
             method='GET',
             url='https://api.nodepay.org/api/season/airdrop-status?',
-            headers=headers,
-            email=self.email
+            email=self.email,
+            headers=headers
         )
 
         if not response.get('success', False):
@@ -160,9 +166,9 @@ class NodepayClient(BaseClient):
         data = f'{self.email}:{self.password}'
 
         if response['data']['is_eligible'] == False:
-            await self.save_to_file(NOT_ELIGIBLE_ACCS_PATH, data)
+            self.save_to_file(NOT_ELIGIBLE_ACCS_PATH, data)
         else:
-            await self.save_to_file(ELIGIBLE_ACCS_PATH, data)
+            self.save_to_file(ELIGIBLE_ACCS_PATH, data)
             
         return response['data']
         
