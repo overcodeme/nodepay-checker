@@ -161,7 +161,7 @@ class NodepayClient(BaseClient):
         if response['data']['is_eligible'] == False:
             self.logger.info('Account not eligible')
         else:
-            self.logger.info('Account is eligible')
+            self.logger.info(f'Your allocation: {data['season_0_1_2_tokens']} NC')
 
         data = f'{self.email}:{self.password}'
 
